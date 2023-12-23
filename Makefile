@@ -1,6 +1,6 @@
 NAME=server
 CC=@c++
-CFLAGS=-Wall -Wextra -Werror
+CFLAGS=-Wall -Wextra -Werror -g -fsanitize=thread -std=c++98
 RM=rm -f
 SRCS= *.cpp
 OBJS=$(SRCS:.c=.o)

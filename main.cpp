@@ -9,9 +9,9 @@
 #include <poll.h>
 #include <arpa/inet.h>
 #define MAX_CLIENTS 10
-#include "server.hpp"
+#include "Server.hpp"
 
-int main(int argc, char const *argv[])
+int main(int argc, char *argv[])
 {
 	if (argc != 4)
 	{
@@ -19,9 +19,10 @@ int main(int argc, char const *argv[])
 		return (1);
 	}
 
-	Server server(1313, "127.0.0.1", "1234");
-	server->createServer(std::string(argv[1]), atoi(argv[2]), std::string(argv[3]));
-	// server->start();
-	close(server->getServer_fd());
+	Server server(atoi(argv[1]), argv[2], argv[3]);
+
+	server.createServer();
+	server.start();
+	close(server.getServerFd());
 	return (0);
 }

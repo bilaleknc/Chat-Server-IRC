@@ -1,11 +1,27 @@
-//  kanal classı ve içerisinde bulunan fonksiyonlar
-
 #ifndef CHANNEL_HPP
 #define CHANNEL_HPP
 
 #include <iostream>
 #include <vector>
 #include "User.hpp"
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <unistd.h>
+#include <poll.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string>
+#include <string.h>	
+
 
 using namespace std;
 
@@ -18,35 +34,32 @@ class Channel {
 		vector<int> operators;
 
 	public:
+		Channel();
 		Channel(std::string name);
 		~Channel();
-		void start();
-		void accept_connection();
-		void read_data(int fd);
-		void send_data(int fd);
-		void close_connection(int fd);
+
 		void print_users();
-		std::string get_name();	
-		void set_name(std::string name);
-		void add_user(User user);
-		void remove_user(int fd);
-		void setAdmin(int fd);
-		void setOperator(int fd);
+
+		void addUser(int fd);
+		void addAdmin(int fd);
+		void addOperator(int fd);
+
+		void removeUser(int fd);
 		void removeAdmin(int fd);
 		void removeOperator(int fd);
-		void sendMessage(int fd, std::string message);
+
+		void sendMessageAllUsers(int fd, std::string message);
 		
-		std::string getChannelName();
-		int getFd();
-		std::vector<int> getUsers();
-		std::vector<int> getAdmins();
-		std::vector<int> getOperators();
-		std::string getTopic();
+		std::string getChannelName() const;
+		std::string getTopic() const;
+		std::vector<int> getUsers() const;
+		std::vector<int> getAdmins() const;
+		std::vector<int> getOperators() const;
+
+		void setChannelName(std::string name);
 		void setTopic(std::string topic);
-		void setFd(int fd);
-		void setUsers(std::vector<int> users);
-		void setAdmins(std::vector<int> admins);
-		void setOperators(std::vector<int> operators);
+
+		User findUserbyFd(int fd);
 };
 
 #endif

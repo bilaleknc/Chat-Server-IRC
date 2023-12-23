@@ -15,21 +15,26 @@ class User{
 		bool		isActive;
 		
 	public:
-		User(std::string userName, std::string nickName, std::string realName, std::string altNickName, int fd);
+		User();
+		User(int fd);
 		~User();
+
 		void setUserName(std::string userName);
 		void setNickName(std::string nickName);
 		void setRealName(std::string realName);
 		void setAltNickName(std::string altNickName);
 		void setFd(int fd);
 		void setIsActive(bool isActive);
-		std::string getUserName();
-		std::string getNickName();
-		std::string getRealName();
-		std::string getAltNickName();
-		int getFd();
-		bool getIsActive();
+
+		std::string getUserName() const;
+		std::string getNickName() const;
+		std::string getRealName() const;
+		std::string getAltNickName() const;
+		int getFd() const;
+		bool getIsActive() const;
+
 		void printUser();
-};
+		void userTakeInfo(std::string info);
+	};
 
 #endif

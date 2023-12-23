@@ -24,22 +24,18 @@
 class Server
 {
 	private:
-		vector<Channel> channels;
-		vector<User> users;
-		int port;
-		std::string ip;
-		int serverFd;
-		std::string password;
-		socklen_t addrlen;
 		struct sockaddr_in address;
-		struct pollfd fds[100];
-		char buffer[1024];
+		vector<Channel> channels;
+		std::string password;
+		struct pollfd *fds;
+		vector<User> users;
+		socklen_t addrlen;
+		std::string ip;
+		char **command;
+		int serverFd;
+		char *buffer;
+		int port;
 		int opt;
-		// int new_socket;
-		// int valread;
-		// struct sockaddr_in address;
-		// char buffer[1024];
-
 	public:
 		Server(int port, std::string ip, std::string password);
 		~Server();
@@ -47,10 +43,9 @@ class Server
 		Server &operator=(const Server &other);
 
 		void start();
-		void stop();
 		void createServer();
 
-		void createUser(std::string userName, std::string nickName, std::string realName, std::string altNickName, int fd);
+		void createUser(int fd);
 		void createChannel(std::string name);
 		
 		void removeUser(int fd);
@@ -60,9 +55,11 @@ class Server
 		std::string getIp() const;
 		std::string getPassword() const;
 		int getServerFd() const;
-		struct pollfd getFds() const;
-		struct sockaddr_in getAddress() const;
-		socklen_t getAddrlen() const;
+		struct pollfd *getFds() const;
+		const struct sockaddr_in &getAddress() const;
+		socklen_t &getAddrlen();
+		char *getBuffer() const;
+		char **getCommand() const;
 
 		void setPort(int port);
 		void setIp(int ip);
@@ -70,13 +67,22 @@ class Server
 		void setServerFd(int server_fd);
 		void setAddrlen(socklen_t addrlen);
 		void setAddress(struct sockaddr_in address);
+		void setCommand(char **command);
 
 		void sendPrivateMessage(int fd, std::string nickName, std::string message);
 		void sendChannelMessage(int fd, std::string channel, std::string message);
 		void sendServerMessage(int fd, std::string message);
 		
-		Channel getChannelbyName(std::string name);
-		User getUserbyName(std::string name);
-		Channel getChannelbyFd(int fd);
-		User getUserbyFd(int fd);		
+		Channel * getChannelbyName(std::string name);
+		User * getUserbyNickName(std::string name);
+		User * getUserbyFd(int fd);
+
+		void userAccept();
+		void readMessage(int fd);
+		void parseMessage();
+		void controlMessage(int fd);
+		void sendMessage(int fd, std::string message);
+
+		//channel isminden başka var mı kontrolü
+		//user nickinden başka var mı kontrolü	
 };
