@@ -51,7 +51,7 @@ class Server
 		int port;
 		int opt;
 	public:
-		Server(int port, std::string ip, std::string password);
+		Server(std::string ip, int port, std::string password);
 		~Server();
 		Server(const Server &other);
 		Server &operator=(const Server &other);

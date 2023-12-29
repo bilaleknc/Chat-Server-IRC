@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 		return (1);
 	}
 
-	Server server(atoi(argv[1]), argv[2], argv[3]);
+	Server server(argv[1], atoi(argv[2]), argv[3]);
 	server.createServer();
 	server.start();
 	close(server.getServerFd());

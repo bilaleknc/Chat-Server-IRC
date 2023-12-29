@@ -20,10 +20,12 @@ User::User(int fd)
 	this->altNickName = "";
     this->fd = fd;
     this->isActive = false;
+	this->isLogin = false;
 }
 
 User::~User()
 {
+	
 }
 
 bool User::getIsLogin() const

@@ -2,7 +2,7 @@
 
 
 
-Server::Server(int port, std::string ip, std::string password)
+Server::Server(std::string ip, int port, std::string password)
 {
 	this->port = port;
 	this->ip = ip;
@@ -19,7 +19,6 @@ Server::~Server()
 {
 	delete[] this->fds;
 	free(buffer);
-	// this->buffer.clear();
 }
 
 Server::Server(const Server &other)
@@ -110,46 +109,48 @@ void Server::readMessage(int fd)
 
 void Server::parseMessage()
 {
+	size_t index = 0;
+
 	if(strlen(buffer) <= 0)
 		return;
 	std::istringstream iss(buffer);
     std::string token;
     while (std::getline(iss, token, ' ')) {
-        this->setCommands(token);
+		index = token.find("\n");
+		if (index != std::string::npos)
+		{
+			this->setCommands(token.substr(0, index - 1));
+			if (token.length() - index > 1)
+				this->setCommands(token.substr(index + 1, token.length() - index - 1));
+		}
+		else
+			this->setCommands(token);	
     }
 }
 
-void Server::setCommands(std::string command){
-	this->commands.push_back(command);
-}
 
-vector<std::string> Server::getCommands() const{
-	return this->commands;
-}
 
 
 void Server::controlMessage(int fd)
 {
 	User *user = getUserbyFd(fd);
 
-	void (Server::*tools[])(User &user) = {&Server::PRIVMSG, &Server::JOIN, &Server::PART, &Server::QUIT, &Server::NICK, &Server::USER};
+	void (Server::*tools[])(User &user) = {&Server::PASS, &Server::PRIVMSG, &Server::JOIN, &Server::PART, &Server::QUIT, &Server::NICK, &Server::USER};
 
-	std::string commands[] = {"NICK", "USER", "PASS", "PRIVMSG", "JOIN", "PART", "QUIT"};
+	std::string commands[] = {"PASS", "NICK", "USER", "PRIVMSG", "JOIN", "PART", "QUIT"};
 
 	for(int i = 0; i < 6; i++){
 		if ((!user->getIsLogin() || !user->getIsActive()) && i > 2)
 			break;
-		if(this->getCommands()[0] == commands[i]){
+		if(this->getCommands()[0].compare(commands[i]) == 0)
 			(this->*tools[i])(*user);
-			break;
-		}
 	}
-	if (user->getNickName().length() == 0)
-		send(fd, "Please enter your nickname: ", 28, 0);
+	if(!user->getIsLogin())
+		send(user->getFd(), "Please login  :  ", 12, 0);
+	else if (user->getNickName().length() == 0)
+		send(user->getFd(), "Please enter your nickname  :  ", 28, 0);
 	else if (user->getRealName().length() == 0)
-		send(fd, "Please enter your real name: ", 28, 0);
-	else if (user->getAltNickName().length() == 0)
-		send(fd, "Please enter your alternative nickname: ", 28, 0);
+		send(user->getFd(), "Please enter your real name  :  ", 28, 0);
 	else
 	{
 		user->setIsActive(true);
@@ -160,27 +161,29 @@ void Server::controlMessage(int fd)
 void Server::PASS(User &user)
 {
 	vector<std::string> com = this->getCommands();
-	if (com.size() == 9 && !com[3].compare("NICK") && !com[5].compare("USER"))
+	if (com.size() == 9 && !com[2].compare("NICK") && !com[4].compare("USER"))
 	{
-		if(this->password.compare(com[1]) == 0)
+		if(!this->password.compare(com[1].substr(1, com[1].length() - 1)))
 		{
 			user.setIsLogin(true);
-			user.setNickName(com[4]);
-			user.setUserName(com[6]);
-			user.setRealName(com[9].substr(1, com[9].length() - 1));
+			user.setNickName(com[3]);
+			user.setUserName(com[5]);
+			user.setRealName(com[8].substr(1, com[9].length() - 1));
+			user.setIsActive(true);
+			
+			std::cout << "User " << user.getNickName() << " registered" << std::endl;
 		}
 	}
 	else
 	{
-		std::string password = this->getCommands()[1];
-		if (this->password.compare(password) == 0)
+		if (this->password.compare(this->getCommands()[1].substr(0, this->getCommands()[1].length() - 1)) == 0)
 		{
 			user.setIsLogin(true);
-			send(user.getFd(), "You are logged in", 17, 0);
+			send(user.getFd(), "You are logged in\n", 18, 0);
 		}
 		else
 		{
-			send(user.getFd(), "Wrong password", 14, 0);
+			send(user.getFd(), "Wrong password\n", 15, 0);
 		}
 	}
 }

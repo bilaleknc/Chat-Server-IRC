@@ -40,6 +40,14 @@ char *Server::getBuffer() const
 	return (this->buffer);
 }
 
+void Server::setCommands(std::string command){
+	this->commands.push_back(command);
+}
+
+vector<std::string> Server::getCommands() const{
+	return this->commands;
+}
+
 void Server::setPort(int port)
 {
 	this->port = port;
