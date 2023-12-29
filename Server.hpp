@@ -71,6 +71,11 @@ class Server
 		void QUIT(User &user);
 		void NICK(User &user);
 		void USER(User &user);
+		void PING(User &user);
+		void PONG(User &user);
+		void LIST(User &user);
+		void PASS(User &user);
+
 
 
 		int getPort() const;

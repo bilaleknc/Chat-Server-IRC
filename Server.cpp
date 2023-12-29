@@ -70,7 +70,6 @@ void Server::start()
 				// sendMessage(fd);
 			}
 		}
-			std::cout << this->fds[1].fd << std::endl;
 	}
 }
 
@@ -79,9 +78,10 @@ void Server::userAccept()
 	int new_socket;
 
 	if (this->getFds()[0].revents & POLLIN)
-	{	
+	{
 		if ((new_socket = accept(this->serverFd, (struct sockaddr *)&(this->address), &(this->addrlen))) > 0)
 		{
+			std::cout << "New connection" << std::endl;
 			this->createUser(new_socket);
 			std::cout << "Client " << new_socket << " connected" << std::endl;
 			send(new_socket, "Welcome to the server\n", 23, 0);
@@ -100,10 +100,10 @@ void Server::readMessage(int fd)
 		close(this->getFds()[fd].fd);
 		this->getFds()[fd].fd = 0;
 	}
-	else
-	{
-		std::cout << "->" << buffer << std::endl;
-	}
+	// else
+	// {
+	// 	std::cout << "->" << buffer << std::endl;
+	// }
 }
 
 
@@ -132,15 +132,15 @@ void Server::controlMessage(int fd)
 {
 	User *user = getUserbyFd(fd);
 
-	void (Server::*tools[])(user) = {&Server::PRIVMSG, &Server::JOIN, &Server::PART, &Server::QUIT, &Server::NICK, &Server::USER};
+	void (Server::*tools[])(User &user) = {&Server::PRIVMSG, &Server::JOIN, &Server::PART, &Server::QUIT, &Server::NICK, &Server::USER};
 
-	std::string commands[] = {"NICK", "USER", "PRIVMSG", "JOIN", "PART", "QUIT"};
+	std::string commands[] = {"NICK", "USER", "PASS", "PRIVMSG", "JOIN", "PART", "QUIT"};
 
 	for(int i = 0; i < 6; i++){
-		if (!user->getIsActive() && i >= 2)
+		if ((!user->getIsLogin() || !user->getIsActive()) && i > 2)
 			break;
 		if(this->getCommands()[0] == commands[i]){
-			(this->*tools[i])(fd);
+			(this->*tools[i])(*user);
 			break;
 		}
 	}
@@ -157,44 +157,78 @@ void Server::controlMessage(int fd)
 	}	
 }
 
-void Server::PRIVMSG(User &user)
+void Server::PASS(User &user)
 {
-		std::string name = this->getCommands()[1];
-		std::string message = this->getCommands()[2];
-		if (name[0] == '#')
+	vector<std::string> com = this->getCommands();
+	if (com.size() == 9 && !com[3].compare("NICK") && !com[5].compare("USER"))
+	{
+		if(this->password.compare(com[1]) == 0)
 		{
-			//
-			sendChannelMessage(user.getFd(), name, message);
+			user.setIsLogin(true);
+			user.setNickName(com[4]);
+			user.setUserName(com[6]);
+			user.setRealName(com[9].substr(1, com[9].length() - 1));
+		}
+	}
+	else
+	{
+		std::string password = this->getCommands()[1];
+		if (this->password.compare(password) == 0)
+		{
+			user.setIsLogin(true);
+			send(user.getFd(), "You are logged in", 17, 0);
 		}
 		else
 		{
-			sendPrivateMessage(user.getFd(), name, message);
+			send(user.getFd(), "Wrong password", 14, 0);
 		}
+	}
+}
+
+void Server::PRIVMSG(User &user)
+{
+	std::string name = this->getCommands()[1];
+	std::string message = this->getCommands()[2];
+	if (name[0] == '#')
+	{
+		Channel *channel = getChannelbyName(name);
+		if (channel == nullptr)
+		{
+			std::cout << "Channel not found" << std::endl;
+			return;
+		}
+
+		sendChannelMessage(user.getFd(), name, message);
+	}
+	else
+	{
+		sendPrivateMessage(user.getFd(), name, message);
+	}
 }
 
 void Server::JOIN(User &user)
 {
-	
+	(void)user;
 }
 
 void Server::PART(User &user)
 {
-
+	(void)user;
 }
 
 void Server::QUIT(User &user)
 {
-
+	(void)user;
 }
 
 void Server::NICK(User &user)
 {
-
+	(void)user;
 }
 
 void Server::USER(User &user)
 {
-
+	(void)user;
 }
 
 
@@ -237,75 +271,7 @@ void Server::removeChannel(std::string channelName)
 	}
 }
 
-int Server::getPort() const
-{
-	return (this->port);
-}
 
-std::string Server::getIp() const
-{
-	return (this->ip);
-}
-
-std::string Server::getPassword() const
-{
-	return (this->password);
-}
-
-int Server::getServerFd() const
-{
-	return (this->serverFd);
-}
-
-struct pollfd * Server::getFds() const
-{
-	return (this->fds);
-}
-
-const struct sockaddr_in& Server::getAddress() const {
-    return this->address;
-}
-
-socklen_t &Server::getAddrlen()
-{
-	return (this->addrlen);
-}
-
-char * Server::getBuffer() const
-{
-	return (this->buffer);
-}
-
-void Server::setPort(int port)
-{
-	this->port = port;
-}
-
-void Server::setIp(int ip)
-{
-	this->ip = ip;
-}
-
-
-void Server::setPassword(int password)
-{
-	this->password = password;
-}
-
-void Server::setServerFd(int server_fd)
-{
-	this->serverFd = server_fd;
-}
-
-void Server::setAddress(struct sockaddr_in address)
-{
-	this->address = address;
-}
-
-void Server::setAddrlen(socklen_t addrlen)
-{
-	this->addrlen = addrlen;
-}
 
 void Server::sendPrivateMessage(int fd, std::string nickName, std::string message)
 {

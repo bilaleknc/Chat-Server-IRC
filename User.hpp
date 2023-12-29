@@ -13,6 +13,7 @@ class User{
 		std::string altNickName;		
 		int 		fd;
 		bool		isActive;
+		bool		isLogin;
 		
 	public:
 		User();
@@ -25,6 +26,7 @@ class User{
 		void setAltNickName(std::string altNickName);
 		void setFd(int fd);
 		void setIsActive(bool isActive);
+		void setIsLogin(bool isLogin);
 
 		std::string getUserName() const;
 		std::string getNickName() const;
@@ -32,6 +34,7 @@ class User{
 		std::string getAltNickName() const;
 		int getFd() const;
 		bool getIsActive() const;
+		bool getIsLogin() const;
 
 		void printUser();
 		void userTakeInfo(std::string info);

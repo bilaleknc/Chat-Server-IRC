@@ -9,6 +9,7 @@ User::User()
 	this->altNickName = "";
 	this->fd = 0;
 	this->isActive = false;
+	this->isLogin = false;
 }
 
 User::User(int fd)
@@ -23,6 +24,16 @@ User::User(int fd)
 
 User::~User()
 {
+}
+
+bool User::getIsLogin() const
+{
+	return this->isLogin;
+}
+
+void User::setIsLogin(bool isLogin)
+{
+	this->isLogin = isLogin;
 }
 
 std::string User::getUserName() const
