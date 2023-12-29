@@ -18,7 +18,8 @@ Server::Server(int port, std::string ip, std::string password)
 Server::~Server()
 {
 	delete[] this->fds;
-	delete[] this->buffer;
+	free(buffer);
+	// this->buffer.clear();
 }
 
 Server::Server(const Server &other)
@@ -40,13 +41,13 @@ Server &Server::operator=(const Server &other)
 void Server::createServer()
 {
 	this->setServerFd(socket(AF_INET, SOCK_STREAM, 0));
-	fcntl(this->getServerFd(), F_SETFL, O_NONBLOCK);	
-	setsockopt(this->getServerFd(), SOL_SOCKET, SO_REUSEADDR, &(this->opt), sizeof(opt));
+	fcntl(this->serverFd, F_SETFL, O_NONBLOCK);	
+	setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &(this->opt), sizeof(opt));
 
-	bind(this->getServerFd(), reinterpret_cast<const struct sockaddr *>(&(this->getAddress())), sizeof(struct sockaddr_in));
-	listen(this->getServerFd(), 3);
+	bind(this->serverFd, reinterpret_cast<const struct sockaddr *>(&(this->address)), sizeof(struct sockaddr_in));
+	listen(this->serverFd, 3);
 	memset(this->getFds(), 0, 100);
-	this->fds[0].fd = this->getServerFd();
+	this->fds[0].fd = this->serverFd;
 	this->fds[0].events = POLLIN;
 }
 
@@ -55,19 +56,21 @@ void Server::start()
 	std::cout << "Server started" << std::endl;
 	while (1)
 	{
-		poll(this->getFds(), 10, -1);
+		poll(this->fds, 10, -1);
 		userAccept();
 		for(int fd = 4; fd < 10; fd++)
 		{
-			std::cout << "fd: " << fd << std::endl;
-			readMessage(fd);
-			std::cout << "buffer: " << this->getBuffer() << std::endl;
-			parseMessage();
-			//controlMessage(fd);
-			//user isRegistered
+			if (this->getFds()[fd].revents & POLLIN)
+			{
+				readMessage(fd);
+				parseMessage();
+				controlMessage(fd);
+				//user isRegistered
 
-			// sendMessage(fd);
+				// sendMessage(fd);
+			}
 		}
+			std::cout << this->fds[1].fd << std::endl;
 	}
 }
 
@@ -76,8 +79,8 @@ void Server::userAccept()
 	int new_socket;
 
 	if (this->getFds()[0].revents & POLLIN)
-	{ 
-		if ((new_socket = accept(this->getServerFd(), (struct sockaddr *)&(this->getAddress()), &(this->getAddrlen()))) > 0)
+	{	
+		if ((new_socket = accept(this->serverFd, (struct sockaddr *)&(this->address), &(this->addrlen))) > 0)
 		{
 			this->createUser(new_socket);
 			std::cout << "Client " << new_socket << " connected" << std::endl;
@@ -90,76 +93,109 @@ void Server::userAccept()
 
 void Server::readMessage(int fd)
 {
-	memset(this->getBuffer(), 0, 1024);
-	if (this->getFds()[fd].revents & POLLIN)
+	memset(buffer, 0, 1024);
+	int valread = recv(this->getFds()[fd].fd, buffer, 1024, 0);
+	if (valread == 0)
 	{
-		int valread = read(this->getFds()[fd].fd, this->getBuffer(), 1024);
-		std::cout << "valread: " << valread << std::endl;
-		if (valread == 0)
-		{
-			close(this->getFds()[fd].fd);
-			this->getFds()[fd].fd = 0;
-		}
+		close(this->getFds()[fd].fd);
+		this->getFds()[fd].fd = 0;
+	}
+	else
+	{
+		std::cout << "->" << buffer << std::endl;
 	}
 }
 
+
+
 void Server::parseMessage()
 {
-	if(this->getBuffer().length() == 0)
+	if(strlen(buffer) <= 0)
 		return;
-	this->getBuffer()[strlen(this->getBuffer()) - 1] = '\0';
-	delete [] this->getCommand();
-	this->setCommand(buffer.split(" "));
+	std::istringstream iss(buffer);
+    std::string token;
+    while (std::getline(iss, token, ' ')) {
+        this->setCommands(token);
+    }
+}
+
+void Server::setCommands(std::string command){
+	this->commands.push_back(command);
+}
+
+vector<std::string> Server::getCommands() const{
+	return this->commands;
+}
+
+
+void Server::controlMessage(int fd)
+{
+	User *user = getUserbyFd(fd);
+
+	void (Server::*tools[])(user) = {&Server::PRIVMSG, &Server::JOIN, &Server::PART, &Server::QUIT, &Server::NICK, &Server::USER};
+
+	std::string commands[] = {"NICK", "USER", "PRIVMSG", "JOIN", "PART", "QUIT"};
+
+	for(int i = 0; i < 6; i++){
+		if (!user->getIsActive() && i >= 2)
+			break;
+		if(this->getCommands()[0] == commands[i]){
+			(this->*tools[i])(fd);
+			break;
+		}
+	}
+	if (user->getNickName().length() == 0)
+		send(fd, "Please enter your nickname: ", 28, 0);
+	else if (user->getRealName().length() == 0)
+		send(fd, "Please enter your real name: ", 28, 0);
+	else if (user->getAltNickName().length() == 0)
+		send(fd, "Please enter your alternative nickname: ", 28, 0);
+	else
+	{
+		user->setIsActive(true);
+		send(fd, "You are registered", 18, 0);
+	}	
+}
+
+void Server::PRIVMSG(User &user)
+{
+		std::string name = this->getCommands()[1];
+		std::string message = this->getCommands()[2];
+		if (name[0] == '#')
+		{
+			//
+			sendChannelMessage(user.getFd(), name, message);
+		}
+		else
+		{
+			sendPrivateMessage(user.getFd(), name, message);
+		}
+}
+
+void Server::JOIN(User &user)
+{
 	
-
-	
 }
 
-void Server::setCommand(char **command){
-	this->command = command;
+void Server::PART(User &user)
+{
+
 }
 
-char **Server::getCommand() const{
-	return this->command;
+void Server::QUIT(User &user)
+{
+
 }
 
+void Server::NICK(User &user)
+{
 
-		// 	if(fds[i].revents & POLLIN && this->getUserbyFd(fds[i].fd)->getIsActive() == false)
-		// 	{
-		// 		if(this->getUserbyFd(fds[i].fd)->getNickName().length() == 0)
-		// 		{
-		// 			send(fds[i].fd, "Please enter your nickname: ", 28, 0);
-		// 		}
-		// 		send(fds[i].fd, "Please enter your nickname: ", 28, 0);
-		// 	}
-		// }
+}
 
+void Server::USER(User &user)
+{
 
-
-// void Server::controlMessage(int fd)
-// {
-// 	User *user = getUserbyFd(fd);
-// 	if(user != nullptr){
-// 		if(user->getIsRegistered() == false){
-// 			if(user->getNickName().length() == 0){
-// 				send(fd, "Please enter your nickname: ", 28, 0);
-// 			}
-// 			else if(user->getRealName().length() == 0){
-// 				send(fd, "Please enter your real name: ", 28, 0);
-// 			}
-// 			else if(user->getAltNickName().length() == 0){
-// 				send(fd, "Please enter your alternative nickname: ", 28, 0);
-// 			}
-// 			else{
-// 				user->setIsRegistered(true);
-// 				send(fd, "You are registered", 18, 0);
-// 			}
-// 		}
-// 	}
-// }
-
-
-
+}
 
 
 void Server::createUser(int fd)
@@ -235,7 +271,7 @@ socklen_t &Server::getAddrlen()
 	return (this->addrlen);
 }
 
-char *Server::getBuffer() const
+char * Server::getBuffer() const
 {
 	return (this->buffer);
 }
@@ -336,118 +372,3 @@ User * Server::getUserbyFd(int fd)
 	return nullptr;	
 }
 
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// Creating socket file descriptorid 
-	
-		// fcntl: Dosya açıklaması için dosya durum bayrağını ayarlar
-	// F_SETFL: Dosya durum bayrağını ayarlamak için kullanılan bir işleve işaret ediyor
-	// O_NONBLOCK: Bloklama olmadan açar
-
-	// SO_REUSEADDR: Bu seçenek, aynı adresi
-	// ve portu bir süre boyunca tekrar kullanma izni verir.
-	// &opt : SO_REUSEADDR seçeneğini etkinleştirmek için kullanılan değer(genellikle 1).
-		// IPv4 adreslerinin bir sunucuda dinlenmesi için kullanılan bir işleve işaret ediyor
-	// inet_pton(AF_INET, "10.10.10.11", &address.sin_addr);
-	// address.sin_addr.s_addr = inet_addr("10.10.10.11");
-	
-
-
-
-	// poll(this->getFds(), 100, -1);
-	// 	for (int i = 0; i < 100; i++)
-	// 	{
-	// 		if (this->getFds()[i].revents & POLLIN)
-	// 		{
-	// 			if (this->getFds()[i].fd == this->getServerFd())
-	// 			{
-	// 				this->getFds()[i].fd = accept(this->getServerFd(), (struct sockaddr *)&(this->getAddress()), &(this->getAddrlen()));
-	// 				this->getFds()[i].events = POLLIN;
-	// 			}
-	// 			else
-	// 			{
-	// 				memset(this->getBuffer(), 0, 1024);
-	// 				int valread = read(this->getFds()[i].fd, this->getBuffer(), 1024);
-	// 				if (valread == 0)
-	// 				{
-	// 					close(this->getFds()[i].fd);
-	// 					this->getFds()[i].fd = 0;
-	// 				}
-	// 				else
-	// 				{
-	// 					std::cout << this->getBuffer() << std::endl;
-	// 					std::string message(this->getBuffer());
-	// 					std::string command = message.substr(0, message.find(" "));
-	// 					std::string userName = message.substr(message.find(" ") + 1, message.find(" ", message.find(" ") + 1) - message.find(" ") - 1);
-	// 					std::string nickName = message.substr(message.find(" ", message.find(" ") + 1) + 1, message.find(" ", message.find(" ", message.find(" ") + 1) + 1) - message.find(" ", message.find(" ") + 1) - 1);
-	// 					std::string realName = message.substr(message.find(" ", message.find(" ", message.find(" ") + 1) + 1) + 1, message.find(" ", message.find(" ", message.find(" ", message.find(" ") + 1) + 1) + 1) - message.find(" ", message.find(" ", message.find(" ") + 1) + 1) - 1);
-	// 					std::string altNickName = message.substr(message.find(" ", message.find(" ", message.find(" ", message.find(" ") + 1) + 1) + 1) + 1, message.find("
-	// 					", message.find(" ", message.find(" ", message.find(" ", message.find(" ") + 1) + 1) + 1) + 1) - message.find(" ", message.find(" ", message.find(" ", message.find(" ") + 1) + 1) + 1) - 1);
-	// 					if (command == "USER")
-	// 					{
-	// 						this->createUser(userName, nickName, realName, altNickName, this->getFds()[i].fd);
-	// 					}
-	// 					else if (command == "NICK")
-	// 					{
-	// 						this->addUser(userName, nickName, realName, altNickName, this->getFds()[i].fd);
-	// 					}
-	// 					else if (command == "JOIN")
-	// 					{
-	// 						this->createChannel(userName);
-	// 					}
-	// 					else if (command == "PART")
-	// 					{
-	// 						this->removeChannel(userName);
-	// 					}
-	// 					else if (command == "PRIVMSG")
-	// 					{
-	// 						this->sendPrivateMessage(this->getFds()[i].fd, userName, message);
-	// 					}
-	// 					else if (command == "QUIT")
-	// 					{
-	// 						this->removeUser(this->getFds()[i].fd);
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-
-
-
-
-	// for (int j = 1; j < 100; j++)
-	// 			{
-	// 				if (fds[j].fd != 0 && fds[j].fd != fds[i].fd)
-	// 				{
-	// 					User *user = getUserbyFd(fds[i].fd);
-	// 					send(fds[j].fd, user->getNickName().c_str(), user->getNickName().length(), 0);
-	// 					send(fds[j].fd, std::to_string(fds[i].fd).c_str(), std::to_string(fds[i].fd).length(), 0);
-	// 					send(fds[j].fd, "  : ", 4, 0);
-	// 					send(fds[j].fd, buffer, valread, 0);
-	// 				}
-	// 			}
-	// 			std::cout << buffer << std::endl;

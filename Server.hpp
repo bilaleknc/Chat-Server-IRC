@@ -18,7 +18,21 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string>
-#include <string.h>	
+#include <string.h>
+#include <poll.h>
+#include <vector>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string> 
+#include <iostream>
+#include <vector>
+#include <cstring>
+#include <sstream>
+
+
+
 
 
 class Server
@@ -26,12 +40,12 @@ class Server
 	private:
 		struct sockaddr_in address;
 		vector<Channel> channels;
+		vector<std::string> commands;
 		std::string password;
-		struct pollfd *fds;
 		vector<User> users;
+		struct pollfd *fds;
 		socklen_t addrlen;
 		std::string ip;
-		char **command;
 		int serverFd;
 		char *buffer;
 		int port;
@@ -51,6 +65,14 @@ class Server
 		void removeUser(int fd);
 		void removeChannel(std::string name);
 
+		void PRIVMSG(User &user);
+		void JOIN(User &user);
+		void PART(User &user);
+		void QUIT(User &user);
+		void NICK(User &user);
+		void USER(User &user);
+
+
 		int getPort() const;
 		std::string getIp() const;
 		std::string getPassword() const;
@@ -59,7 +81,7 @@ class Server
 		const struct sockaddr_in &getAddress() const;
 		socklen_t &getAddrlen();
 		char *getBuffer() const;
-		char **getCommand() const;
+		vector<std::string> getCommands() const;
 
 		void setPort(int port);
 		void setIp(int ip);
@@ -67,7 +89,7 @@ class Server
 		void setServerFd(int server_fd);
 		void setAddrlen(socklen_t addrlen);
 		void setAddress(struct sockaddr_in address);
-		void setCommand(char **command);
+		void setCommands(std::string command);
 
 		void sendPrivateMessage(int fd, std::string nickName, std::string message);
 		void sendChannelMessage(int fd, std::string channel, std::string message);
@@ -85,4 +107,6 @@ class Server
 
 		//channel isminden başka var mı kontrolü
 		//user nickinden başka var mı kontrolü	
+
+
 };
