@@ -65,7 +65,6 @@ void Server::start()
 				readMessage(fd);
 				parseMessage();
 				controlMessage(fd);
-				//sendMessage(fd);
 			}
 		}
 	}

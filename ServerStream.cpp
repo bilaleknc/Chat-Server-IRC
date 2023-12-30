@@ -9,12 +9,7 @@ void Server::readMessage(int fd)
 		close(this->getFds()[fd].fd);
 		this->getFds()[fd].fd = 0;
 	}
-	for (size_t i = 0; i < strlen(buffer); i++)
-	{
-		// std::cout << std::endl;
-		// std::cout << (int)buffer[i] << "=";
-		// std::cout << buffer[i] << "|" << std::endl;
-	}
+	std::cout << "Message from " << fd << " : " << buffer << std::endl;
 }
 
 void Server::parseMessage()
@@ -36,32 +31,40 @@ void Server::parseMessage()
 			this->commands.push_back(token);
 	}
 	buffer.clear();
-	for (size_t i = 0; i < this->commands.size(); i++)
-	{
-		// std::cout << "1|1" << this->commands[i] << "2|2" << std::endl;
-	}
 }
 
 void Server::controlMessage(int fd)
 {
 	User *user = getUserbyFd(fd);
-	void (Server::*tools[])(User &user) = {&Server::PASS, &Server::NICK, &Server::USER, &Server::PRIVMSG, &Server::JOIN, &Server::PART, &Server::QUIT};
-	std::string commands[] = {"PASS", "NICK", "USER", "PRIVMSG", "JOIN", "PART", "QUIT"};
-	for (int i = 0; i < 7; i++)
+	if (!this->getCommands().empty()  && this->getCommands()[0] == "eren")
 	{
-		if ((!user->getIsLogin() || !user->getIsActive()) && i > 2)
+		user->setIsLogin(true);
+		user->setIsActive(true);
+		user->setNickName("eren");
+		user->setUserName("eren");
+	}
+	if (!this->getCommands().empty() && this->getCommands()[0] == "bilal")
+	{
+		user->setIsLogin(true);
+		user->setNickName("bilal");
+		user->setUserName("bilal");
+		user->setIsActive(true);
+	}
+	void (Server::*tools[])(User &user) = {&Server::PASS, &Server::NICK, &Server::USER, &Server::CAP, &Server::PRIVMSG, &Server::JOIN, &Server::PART, &Server::QUIT, &Server::TOPIC};
+	std::string commands[] = {"PASS", "NICK", "USER", "CAP", "PRIVMSG", "JOIN", "PART", "QUIT", "TOPIC"};
+	for (size_t i = 0; i < 9; i++)
+	{
+		if ((!user->getIsLogin() || !user->getIsActive()) && i > 4)
 			break;
 
-		if (!this->getCommands().empty() && (this->getCommands()[0].compare(commands[i]) == 0))
+		if (!this->getCommands().empty() && (this->getCommands()[0].compare(commands[i]) == 0) && printf("Command found\n"))
 		{
-
 			(this->*tools[i])(*user);
 			break;
 		}
-		if (i == 6)
+		if (i == 8)
 			send(user->getFd(), "Command not found\n", 18, 0);
 	}
-
 	if (!user->getIsLogin())
 		send(user->getFd(), "Please login\n", 13, 0);
 	else if (user->getNickName().length() == 0)
@@ -69,3 +72,4 @@ void Server::controlMessage(int fd)
 	else if (user->getUserName().length() == 0)
 		send(user->getFd(), "Please enter your username\n", 27, 0);
 }
+

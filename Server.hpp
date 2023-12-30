@@ -32,9 +32,6 @@
 #include <sstream>
 
 
-
-
-
 class Server
 {
 	private:
@@ -75,6 +72,9 @@ class Server
 		void PONG(User &user);
 		void LIST(User &user);
 		void PASS(User &user);
+		void TOPIC(User &user);
+		void CAP(User &user);
+
 
 
 
@@ -108,10 +108,4 @@ class Server
 		void readMessage(int fd);
 		void parseMessage();
 		void controlMessage(int fd);
-		void sendMessage(int fd, std::string message);
-
-		//channel isminden başka var mı kontrolü
-		//user nickinden başka var mı kontrolü	
-
-
 };

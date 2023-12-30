@@ -37,6 +37,7 @@ void Server::removeUser(int fd)
 	{
 		if (it->getFd() == fd)
 		{
+			close(fd);
 			users.erase(it);
 			std::cout << it->getNickName() << " deleted" << std::endl;
 			break;
