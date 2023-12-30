@@ -13,13 +13,13 @@
 
 int main(int argc, char *argv[])
 {
-	if (argc != 4)
+	if (argc != 3)
 	{
-		std::cout << "Usage: ./server <port> <ip> <password>" << std::endl;
+		std::cout << "Usage: ./server <port> <password>" << std::endl;
 		return (1);
 	}
 
-	Server server(argv[1], atoi(argv[2]), argv[3]);
+	Server server("127.0.0.1", atoi(argv[1]), argv[2]);
 	server.createServer();
 	server.start();
 	close(server.getServerFd());

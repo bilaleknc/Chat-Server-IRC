@@ -1,5 +1,41 @@
 #include "Server.hpp"
 
+Channel *Server::getChannelbyName(std::string name)
+{
+	for (std::vector<Channel>::iterator it = channels.begin(); it != channels.end(); ++it)
+	{
+		if (it->getChannelName() == name)
+		{
+			return (&(*it));
+		}
+	}
+	return nullptr;
+}
+
+User *Server::getUserbyNickName(std::string name)
+{
+	for (std::vector<User>::iterator it = users.begin(); it != users.end(); ++it)
+	{
+		if (it->getNickName() == name)
+		{
+			return (&(*it));
+		}
+	}
+	return nullptr;
+}
+
+User *Server::getUserbyFd(int fd)
+{
+	for (std::vector<User>::iterator it = users.begin(); it != users.end(); ++it)
+	{
+		if (it->getFd() == fd)
+		{
+			return (&(*it));
+		}
+	}
+	return nullptr;
+}
+
 int Server::getPort() const
 {
 	return (this->port);
