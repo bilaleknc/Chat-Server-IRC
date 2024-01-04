@@ -31,8 +31,14 @@
 #include <cstring>
 #include <sstream>
 
+// void sendmessage2(User &sender, int socketfd, std::string message);
+// void sendmessage_privmsg(User &ite, User *clients, std::string message);
+// void sendmessage(User &ite, std::string message);
+// void sendmessage_for_topic(User &ite, std::string message);
+// void sendmessage_for_part(User *ite, std::string message);
 
-class Server
+
+	class Server
 {
 	private:
 		struct sockaddr_in address;
@@ -73,9 +79,7 @@ class Server
 		void LIST(User &user);
 		void PASS(User &user);
 		void TOPIC(User &user);
-		void CAP(User &user);
-
-
+		void NOTICE(User &user);
 
 
 		int getPort() const;
@@ -108,4 +112,26 @@ class Server
 		void readMessage(int fd);
 		void parseMessage();
 		void controlMessage(int fd);
+
+		void sendmessage_join(User *ite, std::string message)
+		{
+			std::string a = ":" + ite->getNickName() + "!" + ite->getUserName() + "@" + this->ip + ":";
+			std::string buffer = a + " " + message + "\r\n";
+			send(ite->getFd(), buffer.c_str(), buffer.size(), 0);
+		}
+
+		void sendmessage_for_topic(User &ite, std::string message)
+		{
+			std::string a = ":" + ite.getNickName() + "!" + ite.getUserName() + "@" + this->ip + ":";
+			std::string buffer = a + " " + message + "\r\n";
+			send(ite.getFd(), buffer.c_str(), buffer.size(), 0);
+		}
+
+		void sendmessage(User &ite, std::string message)
+		{
+			std::string a = ":" + ite.getNickName() + "!" + ite.getUserName() + "@" + this->ip + ":";
+			std::string buffer = a + " " + message + "\r\n";
+
+			send(ite.getFd()  , buffer.c_str(), buffer.size(), 0);
+		}
 };

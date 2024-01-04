@@ -3,6 +3,10 @@
 void Server::sendPrivateMessage(int fd, std::string nickName, std::string message)
 {
 	User *user = getUserbyFd(fd);
+	if(fd == this->getUserbyNickName(nickName)->getFd())
+		return;
+	if (user == nullptr || !user->getIsLogin() || !user->getIsActive())
+		return;
 	for (vector<User>::iterator it = users.begin(); it != users.end(); ++it)
 	{
 		if (it->getNickName() == nickName)
@@ -21,9 +25,10 @@ void Server::sendChannelMessage(int fd, std::string channelName, std::string mes
 	{
 		if (getUserbyFd(fd) != nullptr)
 		{
-			message = channel->getChannelName() + " Client " + getUserbyFd(fd)->getUserName() + " : " + message;
+			message = channel->getChannelName() + " Client " + getUserbyFd(fd)->getUserName() + " : " + message + "\n";
 			channel->sendMessageAllUsers(fd, message);
-			std::cout << message << std::endl;
+			if (fd != serverFd)
+				std::cout << message << std::endl;
 		}
 		else
 		{

@@ -11,7 +11,7 @@ void Server::userAccept()
 			std::cout << "New connection" << std::endl;
 			this->createUser(new_socket);
 			std::cout << "Client " << new_socket << " connected" << std::endl;
-			send(new_socket, "Welcome to the server\n", 23, 0);
+			// send(new_socket, "Welcome to the server\n", 23, 0);
 			fds[new_socket].fd = new_socket;
 			fds[new_socket].events = POLLIN;
 		}
@@ -20,6 +20,32 @@ void Server::userAccept()
 
 void Server::createUser(int fd)
 {
+	if (this->getUserbyFd(fd) != nullptr)
+	{
+		for (std::vector<User>::iterator it = users.begin(); it != users.end(); ++it)
+		{
+			if (it->getFd() == fd)
+			{
+				users.erase(it);
+				break;
+			}
+		}
+
+		for (std::vector<Channel>::iterator c = channels.begin(); c != channels.end(); ++c)
+		{
+
+			std::vector<int> users = c->getUsers();
+			for (std::vector<int>::iterator u = users.begin(); u != users.end(); ++u)
+			{
+				if (*u == fd)
+				{
+					c->removeUser(fd);
+					break;
+				}
+			}
+		}
+		delete this->getUserbyFd(fd);
+	}
 	User user(fd);
 	this->users.push_back(user);
 }

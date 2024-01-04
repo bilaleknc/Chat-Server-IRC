@@ -1,6 +1,13 @@
 #include "Server.hpp"
 
 #define RPL_WELCOME(nickname, username) (":irc.example.com 001 " + nickname + " :Welcome to the IRC Network " + nickname + "!" + username + "\r\n")
+#define RPL_YOURHOST(nickname) (":irc.example.com 002 " + nickname + " :Your host is irc.example.com, running version 1.0\r\n")
+#define RPL_CREATED(nickname) (":irc.example.com 003 " + nickname + " :This server was created sometime\r\n")
+#define RPL_NOTOPIC(channel) (":irc.example.com 331 " + channel + " :No topic is set\r\n")
+#define RPL_TOPIC(channel, topic) (":irc.example.com 332 " + channel + " :" + topic + "\r\n")
+#define RPL_NAMREPLY(channel, nickname) (":irc.example.com 353 " + channel + " :@" + nickname + "\r\n")
+#define RPL_ENDOFNAMES(channel) (":irc.example.com 366 " + channel + " :End of NAMES list\r\n")
+#define RPL_JOIN(channel) (":irc.example.com 332 " + channel + " :Welcome to the channel " + channel + "\r\n")
 
 void Server::PASS(User &user)
 {
@@ -14,8 +21,12 @@ void Server::PASS(User &user)
 			user.setNickName(com[3]);
 			user.setUserName(com[5]);
 			user.setRealName(com[8].substr(1, com[9].length() - 1));
-			RPL_WELCOME(user.getNickName(), user.getUserName());
-
+			std::string welcomeMessage = RPL_WELCOME(user.getNickName(), user.getUserName());
+			std::string yourHost = RPL_YOURHOST(user.getNickName());
+			std::string created = RPL_CREATED(user.getNickName());
+			send(user.getFd(), welcomeMessage.c_str(), welcomeMessage.length(), 0);
+			send(user.getFd(), yourHost.c_str(), yourHost.length(), 0);
+			send(user.getFd(), created.c_str(), created.length(), 0);
 			std::cout << "User " << user.getNickName() << " registered" << std::endl;
 		}
 	}
@@ -74,6 +85,7 @@ void Server::PRIVMSG(User &user)
 			message += " " + this->getCommands()[i];
 	}
 
+	std::cout<< name << std::endl;
 	if (name[0] == '#')
 	{
 		Channel *channel = getChannelbyName(name);
@@ -93,34 +105,47 @@ void Server::PRIVMSG(User &user)
 
 void Server::JOIN(User &user)
 {
-	std::string name = this->getCommands()[1];
+    if (this->getCommands().size() < 2)
+        return;
+    if (this->getUserbyFd(user.getFd()) == nullptr)
+        return;
+
+    std::string name = this->getCommands()[1];
+	send(user.getFd(), RPL_NAMREPLY(name.substr(0, name.length()), user.getNickName()).c_str(), RPL_NAMREPLY(name.substr(0, name.length()), user.getNickName()).length(), 0);
+	send(user.getFd(), RPL_ENDOFNAMES(name.substr(0, name.length())).c_str(), RPL_ENDOFNAMES(name.substr(0, name.length())).length(), 0);
 	if (name[0] == '#')
-	{
-		Channel *channel = getChannelbyName(name);
-		if (channel == nullptr)
-		{
-			send(user.getFd(), "Channel created\n", 16, 0);
-			this->createChannel(name);
-			channel = getChannelbyName(name);
-			channel->addUser(user.getFd());
-			channel->setTopic("No topic");
-			channel->addAdmin(user.getFd());
+    {
+        Channel *channel = getChannelbyName(name);
+        if (channel == nullptr)
+        {
+            this->createChannel(name);
+            channel = getChannelbyName(name);
+            channel->addUser(user.getFd());
+            channel->setTopic("No topic");
+            channel->addAdmin(user.getFd());
+			sendmessage_for_topic(user, RPL_NOTOPIC(name.substr(0, name.length() - 1)));
+
 		}
-		else
-		{
-			send(user.getFd(), "Channel joined\n", 15, 0);
-			std::cout << user.getNickName() << " joined channel " << name << std::endl;
-			channel->addUser(user.getFd());
-		}
-	}
-	else
-	{
-		send(user.getFd(), "Wrong channel name\n", 19, 0);
-	}
+        else
+        {
+            std::cout << user.getNickName() << " joined channel " << name << std::endl;
+            channel->addUser(user.getFd());
+			send(user.getFd(), RPL_JOIN(name.substr(0, name.length())).c_str(), RPL_JOIN(name.substr(0, name.length())).length(), 0);
+        }
+    }
+    else
+    {
+        send(user.getFd(), "Wrong channel name\n", 19, 0);
+    }
+	sendmessage(user, "JOIN You are now in channel " + name.substr(0, name.length()));
+	send(user.getFd(), RPL_NAMREPLY(name.substr(0, name.length() - 1), user.getNickName()).c_str(), RPL_NAMREPLY(name.substr(0, name.length()), user.getNickName()).length(), 0);
+	send(user.getFd(), RPL_ENDOFNAMES(name.substr(0, name.length())).c_str(), RPL_ENDOFNAMES(name.substr(0, name.length())).length(), 0);
 }
 
 void Server::PART(User &user)
 {
+	if (this->getUserbyFd(user.getFd()) == nullptr)
+		return;
 	std::string name = this->getCommands()[1];
 	if (name[0] == '#')
 	{
@@ -143,15 +168,9 @@ void	Server::TOPIC(User &user)
 	std::string name = this->getCommands()[1];
 	std::string topic;
 	if (this->getCommands().size() < 3)
-	{
-		std::cout << "Wrong command" << std::endl;
 		return;
-	}
 	if (this->getCommands()[2][0] != ':')
-	{
-		std::cout << "Wrong command" << std::endl;
 		return;
-	}
 	for (size_t i = 2; i < this->getCommands().size(); i++)
 	{
 		topic += " " + this->getCommands()[i];
@@ -172,10 +191,10 @@ void	Server::TOPIC(User &user)
 	}
 }
 
-
-
 void Server::QUIT(User &user)
 {
+	if (this->getUserbyFd(user.getFd()) == nullptr)
+		return;
 	User *userQuit = getUserbyFd(user.getFd());
 	if (userQuit == nullptr)
 		return;
@@ -183,38 +202,47 @@ void Server::QUIT(User &user)
 	removeUser(userQuit->getFd());
 }
 
-void Server::CAP(User &user)
+
+void Server::LIST(User &user)
 {
-	std::cout << "CAP" << std::endl;
-	std::string message = user.getNickName();
-	message += " CAP * LS :multi-refix sasl\r\n";
+	std::string str;
+	for (size_t i = 0; i < this->channels.size(); i++)
+	{
+		str += this->channels[i].getChannelName() + " " + this->channels[i].getTopic() + "\n";
+	}
+	send(user.getFd(), str.c_str(), str.length(), 0);
+}
 
-	std::cout << message << std::endl;
-	send(user.getFd(), message.c_str(), message.length(), 0);
+void Server::NOTICE(User &user)
+{
+	std::string name = this->getCommands()[1];
+	std::string message;
+	if (this->getCommands()[2][0] != ':')
+	{
+		send(user.getFd(), "Wrong command\n", 14, 0);
+		return;
+	}
+	for (size_t i = 2; i < this->getCommands().size(); i++)
+	{
+		if(i == 2)
+			message += this->getCommands()[i].substr(1, this->getCommands()[i].length() - 1);
+		else
+			message += " " + this->getCommands()[i];
+	}
 
-	// if (this->getCommands().size() < 2)
-	// {
-	// 	std::cout << "Wrong command" << std::endl;
-	// 	return;
-	// }
-	// if (this->getCommands()[1] == "LS")
-	// {
-	// 	send(user.getFd(), "CAP LS\n", 7, 0);
-	// 	std::cout << "CAP LS" << std::endl;
-	// }
-	// else if (this->getCommands()[1] == "REQ")
-	// {
-	// 	send(user.getFd(), "CAP REQ\n", 8, 0);
-	// 	std::cout << "CAP REQ" << std::endl;
-	// }
-	// else if (this->getCommands()[1] == "END")
-	// {
-	// 	send(user.getFd(), "CAP END\n", 8, 0);
-	// 	std::cout << "CAP END" << std::endl;
-	// }
-	// else
-	// {
-	// 	send(user.getFd(), "Wrong command\n", 14, 0);
-	// 	std::cout << "Wrong command" << std::endl; 
-	// }
+	if (name[0] == '#')
+	{
+		Channel *channel = getChannelbyName(name);
+		if (channel == nullptr)
+		{
+			std::cout << "Channel not found" << std::endl;
+			return;
+		}
+
+		sendChannelMessage(user.getFd(), name, message);
+	}
+	else
+	{
+		sendPrivateMessage(user.getFd(), name, message);
+	}
 }

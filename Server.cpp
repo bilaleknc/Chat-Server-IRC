@@ -35,9 +35,6 @@ Server &Server::operator=(const Server &other)
 	return (*this);
 }
 
-
-
-
 void Server::createServer()
 {
 	this->setServerFd(socket(AF_INET, SOCK_STREAM, 0));

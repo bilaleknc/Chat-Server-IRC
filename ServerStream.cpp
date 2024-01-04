@@ -9,7 +9,6 @@ void Server::readMessage(int fd)
 		close(this->getFds()[fd].fd);
 		this->getFds()[fd].fd = 0;
 	}
-	std::cout << "Message from " << fd << " : " << buffer << std::endl;
 }
 
 void Server::parseMessage()
@@ -36,28 +35,14 @@ void Server::parseMessage()
 void Server::controlMessage(int fd)
 {
 	User *user = getUserbyFd(fd);
-	if (!this->getCommands().empty()  && this->getCommands()[0] == "eren")
-	{
-		user->setIsLogin(true);
-		user->setIsActive(true);
-		user->setNickName("eren");
-		user->setUserName("eren");
-	}
-	if (!this->getCommands().empty() && this->getCommands()[0] == "bilal")
-	{
-		user->setIsLogin(true);
-		user->setNickName("bilal");
-		user->setUserName("bilal");
-		user->setIsActive(true);
-	}
-	void (Server::*tools[])(User &user) = {&Server::PASS, &Server::NICK, &Server::USER, &Server::CAP, &Server::PRIVMSG, &Server::JOIN, &Server::PART, &Server::QUIT, &Server::TOPIC};
-	std::string commands[] = {"PASS", "NICK", "USER", "CAP", "PRIVMSG", "JOIN", "PART", "QUIT", "TOPIC"};
+	void (Server::*tools[])(User &user) = {&Server::PASS, &Server::NICK, &Server::USER, &Server::PRIVMSG, &Server::JOIN, &Server::PART, &Server::QUIT, &Server::TOPIC, &Server::NOTICE};
+	std::string commands[] = {"PASS", "NICK", "USER", "PRIVMSG", "JOIN", "PART", "QUIT", "TOPIC", "NOTICE"};
 	for (size_t i = 0; i < 9; i++)
 	{
-		if ((!user->getIsLogin() || !user->getIsActive()) && i > 4)
+		if ((!user->getIsLogin() || !user->getIsActive()) && i > 3)
 			break;
 
-		if (!this->getCommands().empty() && (this->getCommands()[0].compare(commands[i]) == 0) && printf("Command found\n"))
+		if (!this->getCommands().empty() && (this->getCommands()[0].compare(commands[i]) == 0))
 		{
 			(this->*tools[i])(*user);
 			break;

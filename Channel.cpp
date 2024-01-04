@@ -3,7 +3,7 @@
 Channel::Channel()
 {
     this->name = "";
-    this->topic = "";
+    this->topic = "no topic";
 }
 
 Channel::Channel(std::string name)
