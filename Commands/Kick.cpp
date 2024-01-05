@@ -2,10 +2,37 @@
 
 void	Server::KICK(User &user)
 {
-	// KICK #channel nickname :reason
 	std::string name = this->getCommands()[1];
 	std::string nickname = this->getCommands()[2];
 	std::string reason;
+	
+	User *targetUser = this->getUserbyNickName(nickname);
+	Channel *channel = getChannelbyName(name);
+	std::vector<int> users = channel->getUsers();
+	std::vector<int> operators = channel->getOperators();
+
+	if (targetUser == nullptr || channel == nullptr)
+		return;
+	for (size_t i = 0; i < users.size(); i++)
+	{
+		if (users[i] == user.getFd())
+			break;
+		if (i == users.size() - 1)
+		{
+			send(user.getFd(), "You are not on the channel\n", 27, 0);
+			return;
+		}
+	}
+	for (size_t i = 0; i < operators.size(); i++)
+	{
+		if (operators[i] == user.getFd())
+			break;
+		if (i == operators.size() - 1)
+		{
+			send(user.getFd(), "You are not operator\n", 21, 0);
+			return;
+		}
+	}
 	if (this->getCommands().size() > 3)
 	{
 		if (this->getCommands()[3][0] != ':')
@@ -23,34 +50,15 @@ void	Server::KICK(User &user)
 	}
 	if (name[0] == '#')
 	{
-		Channel *channel = getChannelbyName(name);
-		if (channel == nullptr)
+		for (size_t j = 0; j < users.size(); j++)
 		{
-			std::cout << "Channel not found" << std::endl;
-			return;
-		}
-		for (size_t i = 0; i < channel->getUsers().size(); i++)
-		{
-			if (channel->getUsers()[i] == user.getFd())
+			if (users[j] == targetUser->getFd())
 			{
-				if (channel->getOperators()[i] == user.getFd() || channel->getAdmins()[i] == user.getFd())
-				{
-					for (size_t j = 0; j < channel->getUsers().size(); j++)
-					{
-						if (channel->getUsers()[j] == getUserbyNickName(nickname)->getFd())
-						{
-							channel->removeUser(getUserbyNickName(nickname)->getFd());
-							std::string kick = ":" + user.getNickName() + "!" + user.getUserName() + "@" + this->ip + " KICK " + name + " " + nickname + " :" + reason + "\r\n";
-							send(user.getFd(), kick.c_str(), kick.length(), 0);
-							return;
-						}
-					}
-				}
-				else
-				{
-					send(user.getFd(), "You are not operator or admin\n", 30, 0);
-					return;
-				}
+				channel->removeUser(targetUser->getFd());
+				std::string kick = ":" + user.getNickName() + "!" + user.getUserName() + "@" + this->ip + " KICK " + name + " " + nickname + " :" + reason + "\r\n";
+				send(user.getFd(), kick.c_str(), kick.length(), 0);
+				std::cout << user.getNickName() << " kicked " << nickname << " from " << name << std::endl;
+				return;
 			}
 		}
 	}

@@ -23,6 +23,13 @@ void Server::sendPrivateMessage(int fd, std::string nickName, std::string messag
 void Server::sendChannelMessage(int fd, std::string channelName, std::string message)
 {
 	Channel *channel = getChannelbyName(channelName);
+	
+	if (!channel->onTheChannel(fd))
+	{
+		std::cout << "User not on the channel" << std::endl;
+		send(fd, "User not on the channel\n", 24, 0);
+		return;
+	}
 	if (channel != nullptr)
 	{
 		if (getUserbyFd(fd) != nullptr)

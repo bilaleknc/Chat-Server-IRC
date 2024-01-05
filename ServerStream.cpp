@@ -37,9 +37,9 @@ void Server::controlMessage(int fd)
 {
 	User *user = getUserbyFd(fd);
 	void (Server::*tools[])(User &user) = {&Server::PASS, &Server::NICK, &Server::USER, &Server::PRIVMSG, &Server::JOIN, &Server::PART, 
-			&Server::QUIT, &Server::TOPIC, &Server::NOTICE, &Server::PING, &Server::WHO, &Server::MODE, &Server::KICK};
-	std::string commands[] = {"PASS", "NICK", "USER", "PRIVMSG", "JOIN", "PART", "QUIT", "TOPIC", "NOTICE", "PING", "WHO", "MODE", "KICK"};
-	for (size_t i = 0; i < 13; i++)
+			&Server::QUIT, &Server::TOPIC, &Server::NOTICE, &Server::PING, &Server::WHO, &Server::MODE, &Server::KICK, &Server::LIST};
+	std::string commands[] = {"PASS", "NICK", "USER", "PRIVMSG", "JOIN", "PART", "QUIT", "TOPIC", "NOTICE", "PING", "WHO", "MODE", "KICK", "LIST"};
+	for (size_t i = 0; i < 14; i++)
 	{
 		if ((!user->getIsLogin() || !user->getIsActive()) && i > 3)
 			break;
@@ -49,7 +49,7 @@ void Server::controlMessage(int fd)
 			(this->*tools[i])(*user);
 			break;
 		}
-		if (i == 12)
+		if (i == 13)
 			send(user->getFd(), "Command not found\n", 18, 0);
 	}
 	if (!user->getIsLogin())

@@ -5,7 +5,18 @@ void Server::WHO(User &user)
 	std::string name = this->getCommands()[1];
 	Channel *channel = getChannelbyName(name);
 	if (channel == nullptr)
-		return;  
+		return;
+	std::vector<int> operators = channel->getOperators();
+	for (size_t i = 0; i < operators.size(); i++)
+	{
+		if (operators[i] == user.getFd())
+			break;
+		if (i == operators.size() - 1)
+		{
+			send(user.getFd(), "You are not operator\n", 21, 0);
+			return;
+		}
+	}
 	for (size_t i = 0; i < channel->getUsers().size(); i++)
 	{
 		User *user2 = getUserbyFd(channel->getUsers()[i]);

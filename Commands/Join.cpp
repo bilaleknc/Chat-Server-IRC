@@ -14,7 +14,7 @@ void Server::JOIN(User &user)
             channel = getChannelbyName(name);
             channel->addUser(user.getFd());
             channel->setTopic("No topic");
-            channel->addAdmin(user.getFd());
+            channel->addOperator(user.getFd());
 			std::string join = ":" + user.getNickName() + "!" + user.getUserName() + "@" + this->ip + " JOIN " + name + "\r\n";
 			send(user.getFd(), join.c_str(), join.length(), 0);
 		}

@@ -30,7 +30,6 @@ class Channel {
 		std::string name;
 		std::string topic;
 		vector<int> users;
-		vector<int> admins;
 		vector<int> operators;
 
 	public:
@@ -41,11 +40,9 @@ class Channel {
 		void print_users();
 
 		void addUser(int fd);
-		void addAdmin(int fd);
 		void addOperator(int fd);
 
 		void removeUser(int fd);
-		void removeAdmin(int fd);
 		void removeOperator(int fd);
 
 		void sendMessageAllUsers(int fd, std::string message);
@@ -53,13 +50,12 @@ class Channel {
 		std::string getChannelName() const;
 		std::string getTopic() const;
 		std::vector<int> getUsers() const;
-		std::vector<int> getAdmins() const;
 		std::vector<int> getOperators() const;
 
 		void setChannelName(std::string name);
 		void setTopic(std::string topic);
 
-		User findUserbyFd(int fd);
+		bool onTheChannel(int fd);
 };
 
 #endif

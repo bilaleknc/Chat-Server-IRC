@@ -15,6 +15,17 @@ void	Server::TOPIC(User &user)
 	if (name[0] == '#')
 	{
 		Channel *channel = getChannelbyName(name);
+		std::vector<int> operators = channel->getOperators();
+		for (size_t i = 0; i < operators.size(); i++)
+		{
+			if (operators[i] == user.getFd())
+				break;
+			if (i == operators.size() - 1)
+			{
+				send(user.getFd(), "You are not operator\n", 21, 0);
+				return;
+			}
+		}
 		if (channel == nullptr)
 		{
 			std::cout << "Channel not found" << std::endl;
