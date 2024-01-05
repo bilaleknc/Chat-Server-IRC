@@ -2,7 +2,7 @@ NAME = ircserv
 CC=@c++
 CFLAGS=-Wall -Wextra -Werror -g -fsanitize=thread -std=c++98
 RM=rm -f
-SRCS= *.cpp
+SRCS= *.cpp Commands/*.cpp
 OBJS=$(SRCS:.c=.o)
 
 all: $(NAME)

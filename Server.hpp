@@ -31,14 +31,18 @@
 #include <cstring>
 #include <sstream>
 
-// void sendmessage2(User &sender, int socketfd, std::string message);
-// void sendmessage_privmsg(User &ite, User *clients, std::string message);
-// void sendmessage(User &ite, std::string message);
-// void sendmessage_for_topic(User &ite, std::string message);
-// void sendmessage_for_part(User *ite, std::string message);
+#define RPL_WELCOME(nickname, username) (":irc.example.com 001 " + nickname + " :Welcome to the IRC Network " + nickname + "!" + username + "\r\n")
+#define RPL_YOURHOST(nickname) (":irc.example.com 002 " + nickname + " :Your host is irc.example.com, running version 1.0\r\n")
+#define RPL_CREATED(nickname) (":irc.example.com 003 " + nickname + " :This server was created sometime\r\n")
+#define RPL_NOTOPIC(channel) (":irc.example.com 331 " + channel + " :No topic is set\r\n")
+#define RPL_TOPIC(channel, topic) (":irc.example.com 332 " + channel + " :" + topic + "\r\n")
+#define RPL_NAMREPLY(channel, nickname) (":irc.example.com 353 " + channel + " :@" + nickname + "\r\n")
+#define RPL_ENDOFNAMES(channel) (":irc.example.com 366 " + channel + " :End of NAMES list\r\n")
+#define RPL_JOIN(channel) (":irc.example.com 332 " + channel + " :Welcome to the channel " + channel + "\r\n")
+#define RPL_WHOREPLY(channel, nickname, username, hostname, servername, nickname2, hopcount, realname) (":irc.example.com 352 " + channel + " " + nickname + " " + username + " " + hostname + " " + servername + " " + nickname2 + " " + hopcount + " " + realname + " H :0 " + realname + "\r\n")
+#define RPL_ENDOFWHO(channel) (":irc.example.com 315 " + channel + " :End of WHO list\r\n")
 
-
-	class Server
+class Server
 {
 	private:
 		struct sockaddr_in address;
@@ -74,13 +78,15 @@
 		void QUIT(User &user);
 		void NICK(User &user);
 		void USER(User &user);
-		void PING(User &user);
 		void PONG(User &user);
 		void LIST(User &user);
 		void PASS(User &user);
 		void TOPIC(User &user);
 		void NOTICE(User &user);
-
+		void PING(User &user);
+		void WHO(User &user);
+		void MODE(User &user);
+		void KICK(User &user);
 
 		int getPort() const;
 		std::string getIp() const;
@@ -112,26 +118,4 @@
 		void readMessage(int fd);
 		void parseMessage();
 		void controlMessage(int fd);
-
-		void sendmessage_join(User *ite, std::string message)
-		{
-			std::string a = ":" + ite->getNickName() + "!" + ite->getUserName() + "@" + this->ip + ":";
-			std::string buffer = a + " " + message + "\r\n";
-			send(ite->getFd(), buffer.c_str(), buffer.size(), 0);
-		}
-
-		void sendmessage_for_topic(User &ite, std::string message)
-		{
-			std::string a = ":" + ite.getNickName() + "!" + ite.getUserName() + "@" + this->ip + ":";
-			std::string buffer = a + " " + message + "\r\n";
-			send(ite.getFd(), buffer.c_str(), buffer.size(), 0);
-		}
-
-		void sendmessage(User &ite, std::string message)
-		{
-			std::string a = ":" + ite.getNickName() + "!" + ite.getUserName() + "@" + this->ip + ":";
-			std::string buffer = a + " " + message + "\r\n";
-
-			send(ite.getFd()  , buffer.c_str(), buffer.size(), 0);
-		}
 };

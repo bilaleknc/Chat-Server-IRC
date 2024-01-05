@@ -11,7 +11,6 @@ void Server::userAccept()
 			std::cout << "New connection" << std::endl;
 			this->createUser(new_socket);
 			std::cout << "Client " << new_socket << " connected" << std::endl;
-			// send(new_socket, "Welcome to the server\n", 23, 0);
 			fds[new_socket].fd = new_socket;
 			fds[new_socket].events = POLLIN;
 		}
@@ -30,10 +29,8 @@ void Server::createUser(int fd)
 				break;
 			}
 		}
-
 		for (std::vector<Channel>::iterator c = channels.begin(); c != channels.end(); ++c)
 		{
-
 			std::vector<int> users = c->getUsers();
 			for (std::vector<int>::iterator u = users.begin(); u != users.end(); ++u)
 			{

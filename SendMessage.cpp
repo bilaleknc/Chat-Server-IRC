@@ -3,18 +3,20 @@
 void Server::sendPrivateMessage(int fd, std::string nickName, std::string message)
 {
 	User *user = getUserbyFd(fd);
-	if(fd == this->getUserbyNickName(nickName)->getFd())
-		return;
 	if (user == nullptr || !user->getIsLogin() || !user->getIsActive())
+		return;
+	User *dst = getUserbyNickName(nickName);
+	if (dst == nullptr || !dst->getIsLogin() || !dst->getIsActive() || dst->getFd() == fd)
+		return;
+	if (fd == dst->getFd())
 		return;
 	for (vector<User>::iterator it = users.begin(); it != users.end(); ++it)
 	{
 		if (it->getNickName() == nickName)
 		{
-			message = "Client " + user->getNickName() + " : " + message + "\n";
-			send(it->getFd(), message.c_str(), message.length(), 0);
-			break;
-		}
+			std::string buffer = ":" + user->getNickName() + "!" + user->getUserName() + "@" + this->ip + " PRIVMSG " + nickName + " :" + message + "\r\n";
+			send(it->getFd(), buffer.c_str(), buffer.size(), 0);
+		}	
 	}
 }
 
@@ -25,10 +27,9 @@ void Server::sendChannelMessage(int fd, std::string channelName, std::string mes
 	{
 		if (getUserbyFd(fd) != nullptr)
 		{
-			message = channel->getChannelName() + " Client " + getUserbyFd(fd)->getUserName() + " : " + message + "\n";
-			channel->sendMessageAllUsers(fd, message);
-			if (fd != serverFd)
-				std::cout << message << std::endl;
+			std::string buffer = ":" + getUserbyFd(fd)->getNickName() + "!" + getUserbyFd(fd)->getUserName() + "@" + this->ip + " PRIVMSG " + channelName + " :" + message + "\r\n";
+			channel->sendMessageAllUsers(fd, buffer);
+			
 		}
 		else
 		{
