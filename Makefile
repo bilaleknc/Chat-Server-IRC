@@ -1,6 +1,6 @@
 NAME = ircserv
 CC=@c++
-CFLAGS=-Wall -Wextra -Werror -std=c++98
+CFLAGS=-Wall -Wextra -Werror -std=c++98 -g
 RM=rm -f
 SRCS= *.cpp Commands/*.cpp
 OBJS=$(SRCS:.c=.o)

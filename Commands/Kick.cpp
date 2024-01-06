@@ -6,13 +6,13 @@ void	Server::KICK(User &user)
 	std::string nickname = this->getCommands()[2];
 	std::string reason;
 	
-	User *targetUser = this->getUserbyNickName(nickname);
 	Channel *channel = getChannelbyName(name);
+	User *targetUser = this->getUserbyNickName(nickname);
+	if (targetUser == nullptr || channel == nullptr)
+		return;
 	std::vector<int> users = channel->getUsers();
 	std::vector<int> operators = channel->getOperators();
 
-	if (targetUser == nullptr || channel == nullptr)
-		return;
 	for (size_t i = 0; i < users.size(); i++)
 	{
 		if (users[i] == user.getFd())
@@ -55,6 +55,7 @@ void	Server::KICK(User &user)
 			if (users[j] == targetUser->getFd())
 			{
 				channel->removeUser(targetUser->getFd());
+				channel->removeOperator(targetUser->getFd());
 				std::string kick = ":" + user.getNickName() + "!" + user.getUserName() + "@" + this->ip + " KICK " + name + " " + nickname + " :" + reason + "\r\n";
 				send(user.getFd(), kick.c_str(), kick.length(), 0);
 				std::cout << user.getNickName() << " kicked " << nickname << " from " << name << std::endl;

@@ -38,7 +38,6 @@ void Server::MODE(User &user)
 						channel->addOperator(targetUser->getFd());
 						return;
 					}
-					
 				}
 			}
 		}

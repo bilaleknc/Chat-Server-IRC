@@ -11,7 +11,7 @@ void Server::PASS(User &user)
 			user.setIsActive(true);
 			user.setNickName(com[3]);
 			user.setUserName(com[5]);
-			user.setRealName(com[8].substr(1, com[9].length() - 1));
+			user.setRealName(com[8].substr(1, com[8].length() - 1));
 			std::string welcomeMessage = RPL_WELCOME(user.getNickName(), user.getUserName());
 			std::string yourHost = RPL_YOURHOST(user.getNickName());
 			std::string created = RPL_CREATED(user.getNickName());
